@@ -1,0 +1,4 @@
+# Only needed to execute the existing notebook with nbconvert.
+-r requirements-kaggle.txt
+nbconvert==7.16.6
+ipykernel==6.30.1
