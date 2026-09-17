@@ -203,7 +203,7 @@ def validate_environment() -> dict[str, Any]:
         )], capture_output=True, text=True, timeout=120, check=True,
     )
     runtime = json.loads(check.stdout.strip())
-    if not (runtime["vllm"] == "0.29.0"
+    if not (runtime["vllm"].split("+", 1)[0] == "0.29.0"
             and runtime["torch"].startswith("2.13.0+cu129")
             and runtime["cuda"] == "12.9"
             and runtime["device_count"] == 2
