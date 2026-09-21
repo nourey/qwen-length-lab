@@ -5,19 +5,26 @@ set -euo pipefail
 # The server and controller use separate Python environments.
 VLLM_ENV=/kaggle/temp/qwen30-vllm-env
 CONTROL_ENV=/kaggle/temp/system-one-env
-UV_ENV=/kaggle/temp/qwen30-uv-bootstrap
 ADAPTER_COMMIT=0bb819b85d67a98c736d7c3004eae95f49f3daa3
 VLLM_WHEEL='https://github.com/vllm-project/vllm/releases/download/v0.29.0/vllm-0.29.0%2Bcu129-cp38-abi3-manylinux_2_28_x86_64.whl'
 TORCH_INDEX='https://download.pytorch.org/whl/cu129'
 
 mkdir -p /kaggle/temp
 
+if ! command -v uv >/dev/null 2>&1; then
+  # Kaggle's sitecustomize imports wrapt, which breaks ensurepip in a clean
+  # stdlib venv. Install uv with the working base interpreter, then let uv
+  # create and populate the isolated environments without invoking ensurepip.
+  python3 -m pip install --disable-pip-version-check --no-cache-dir --no-deps uv
+fi
+UV_BIN=$(command -v uv)
+
 if [[ ! -x "$VLLM_ENV/bin/python" ]]; then
   if python3 -c 'import importlib.metadata as m, torch; assert m.version("vllm").split("+", 1)[0] == "0.29.0"; assert torch.__version__.startswith("2.13.0+cu129"); assert torch.version.cuda == "12.9"' >/dev/null 2>&1 && command -v vllm >/dev/null 2>&1; then
-    python3 -m venv --system-site-packages "$VLLM_ENV"
+    "$UV_BIN" venv --system-site-packages --python "$(command -v python3)" "$VLLM_ENV"
     ln -s "$(command -v vllm)" "$VLLM_ENV/bin/vllm"
   else
-    python3 -m venv "$VLLM_ENV"
+    "$UV_BIN" venv --python "$(command -v python3)" "$VLLM_ENV"
   fi
 fi
 if ! "$VLLM_ENV/bin/python" -c 'import importlib.metadata as m, torch; assert m.version("vllm").split("+", 1)[0] == "0.29.0"; assert torch.__version__.startswith("2.13.0+cu129"); assert torch.version.cuda == "12.9"' >/dev/null 2>&1; then
@@ -25,22 +32,19 @@ if ! "$VLLM_ENV/bin/python" -c 'import importlib.metadata as m, torch; assert m.
     echo "Existing vLLM environment inherits incompatible Kaggle packages. Remove $VLLM_ENV and rerun this script." >&2
     exit 1
   fi
-  if [[ ! -x "$UV_ENV/bin/uv" ]]; then
-    python3 -m venv "$UV_ENV"
-    "$UV_ENV/bin/python" -m pip install uv
-  fi
   echo "Installing the official vLLM 0.29.0 CUDA 12.9 wheel in $VLLM_ENV"
-  UV_CACHE_DIR=/kaggle/temp/uv-cache "$UV_ENV/bin/uv" pip install \
-    --python "$VLLM_ENV/bin/python" "$VLLM_WHEEL" \
+  UV_CACHE_DIR=/kaggle/temp/uv-cache UV_HTTP_TIMEOUT=600 "$UV_BIN" pip install \
+    --python "$VLLM_ENV/bin/python" wrapt "$VLLM_WHEEL" \
     --extra-index-url "$TORCH_INDEX"
 fi
 test -x "$VLLM_ENV/bin/vllm"
 
 if [[ ! -x "$CONTROL_ENV/bin/python" ]]; then
-  python3 -m venv "$CONTROL_ENV"
+  "$UV_BIN" venv --python "$(command -v python3)" "$CONTROL_ENV"
 fi
 
-"$CONTROL_ENV/bin/python" -m pip install \
+UV_CACHE_DIR=/kaggle/temp/uv-cache UV_HTTP_TIMEOUT=600 "$UV_BIN" pip install \
+  --python "$CONTROL_ENV/bin/python" wrapt \
   "system-one-adapter[openai] @ git+https://github.com/typesafe-ai/system-one-adapter-python.git@${ADAPTER_COMMIT}" \
   'openai==3.14.1' 'httpx2==2.13.0'
 
