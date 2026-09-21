@@ -187,9 +187,11 @@ def load_prompts() -> tuple[list[dict[str, Any]], str]:
 
 def validate_environment() -> dict[str, Any]:
     versions = {name: importlib.metadata.version(name) for name in
-                ("system-one-adapter", "openai", "httpx2")}
+                ("system-one-adapter", "typesafe-sdk", "openai", "httpx2")}
     if versions["system-one-adapter"] != "0.1.4":
         raise RuntimeError(f"Expected System One Adapter 0.1.4; got {versions['system-one-adapter']}")
+    if versions["typesafe-sdk"] != "0.6.0":
+        raise RuntimeError(f"Expected TypeSafe SDK 0.6.0; got {versions['typesafe-sdk']}")
     if versions["openai"] != "3.14.1" or versions["httpx2"] != "2.13.0":
         raise RuntimeError(f"Unexpected control HTTP package versions: {versions}")
     if not VLLM_PYTHON.is_file() or not VLLM_COMMAND.is_file():

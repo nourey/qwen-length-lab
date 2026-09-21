@@ -47,7 +47,7 @@ fi
 UV_CACHE_DIR=/kaggle/temp/uv-cache UV_HTTP_TIMEOUT=600 "$UV_BIN" pip install \
   --python "$CONTROL_ENV/bin/python" wrapt \
   "system-one-adapter[openai] @ git+https://github.com/typesafe-ai/system-one-adapter-python.git@${ADAPTER_COMMIT}" \
-  'openai==3.14.1' 'httpx2==2.13.0'
+  'typesafe-sdk==0.6.0' 'openai==3.14.1' 'httpx2==2.13.0'
 
 "$VLLM_ENV/bin/python" - <<'PY'
 import importlib.metadata as m
@@ -64,6 +64,7 @@ PY
 import importlib.metadata as m
 import system_one_adapter, openai, httpx2
 assert m.version("system-one-adapter") == "0.1.4", m.version("system-one-adapter")
+assert m.version("typesafe-sdk") == "0.6.0", m.version("typesafe-sdk")
 assert openai.__version__ == "3.14.1", openai.__version__
 assert httpx2.__version__ == "2.13.0", httpx2.__version__
 print("Control environment:", system_one_adapter.__version__, openai.__version__, httpx2.__version__)
