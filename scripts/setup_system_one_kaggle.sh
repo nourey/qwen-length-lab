@@ -35,6 +35,7 @@ if ! "$VLLM_ENV/bin/python" -c 'import importlib.metadata as m, torch; assert m.
   echo "Installing the official vLLM 0.29.0 CUDA 12.9 wheel in $VLLM_ENV"
   UV_CACHE_DIR=/kaggle/temp/uv-cache UV_HTTP_TIMEOUT=600 "$UV_BIN" pip install \
     --python "$VLLM_ENV/bin/python" wrapt "$VLLM_WHEEL" \
+    --index-strategy unsafe-best-match \
     --extra-index-url "$TORCH_INDEX"
 fi
 test -x "$VLLM_ENV/bin/vllm"
